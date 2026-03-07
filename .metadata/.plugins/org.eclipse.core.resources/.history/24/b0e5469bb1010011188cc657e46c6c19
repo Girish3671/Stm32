@@ -1,0 +1,62 @@
+#include <stdint.h>
+
+#define ITM_BASE_ADDR    (0xE0000000UL)
+#define ITM_TER          (*((volatile uint32_t*)(ITM_BASE_ADDR + 0x0E00UL)))
+#define ITM_TPR          (*((volatile uint32_t*)(ITM_BASE_ADDR + 0x0E40UL)))
+#define ITM_TCR          (*((volatile uint32_t*)(ITM_BASE_ADDR + 0x0E80UL)))
+#define ITM_LAR          (*((volatile uint32_t*)(ITM_BASE_ADDR + 0x0FB0UL)))
+#define DEMCR            (*((volatile uint32_t*)(0xE000EDFCUL)))
+
+#define ITM_STIM0        (*((volatile uint32_t*)(ITM_BASE_ADDR + 0x0000UL)))
+
+static inline void ITM_SendCharDirect(uint8_t ch) {
+    // Wait until STIM0 is ready to accept data
+    while ((ITM_STIM0 & 1) == 0);
+
+    // Write character
+    ITM_STIM0 = ch;
+}
+
+void init_ITM(void) {
+    // 1. Unlock ITM (required for some Cortex-M4 implementations)
+    ITM_LAR = 0xC5ACCE55;
+
+    // 2. Enable Trace Exceptions
+    DEMCR |= (1 << 24);  // Set TRCENA bit
+
+    // 3. Disable ITM and wait for ready
+    ITM_TCR = 0;
+    while (ITM_TCR & (1 << 0));  // Wait until ITMENA is cleared
+
+    // 4. Configure ITM
+    ITM_TPR = 0x0000000F;  // Enable all stimulus ports (lower priority)
+    ITM_TER = 0xFFFFFFFF;  // Enable all stimulus ports
+    ITM_TCR = (1 << 0)     // ITM Enable
+            | (1 << 3)     // Enable Synchronization packet transmission
+            | (1 << 1)     // Enable Local timestamp
+            | (16 << 8);   // Set Trace bus ID
+
+    // Small delay for stabilization
+    for(int i = 0; i < 1000; i++);
+}
+
+int main(void) {
+    init_ITM();
+
+    // Test message
+    char* message = "Hello World!\n";
+    while(*message) {
+        ITM_SendCharDirect(*message++);
+    }
+
+    // Counter test
+    uint32_t counter = 0;
+    while(1) {
+        ITM_SendCharDirect('A' + (counter % 26));
+        ITM_SendCharDirect('\n');
+        counter++;
+
+        // Simple delay
+        for(volatile int i = 0; i < 1000000; i++);
+    }
+}

@@ -1,0 +1,30 @@
+void test_ITM_registers(void) {
+    printf("DEMCR = 0x%08lX\n", DEMCR);
+    printf("ITM_TCR = 0x%08lX\n", ITM_TCR);
+    printf("ITM_TER = 0x%08lX\n", ITM_TER);
+    printf("ITM_TPR = 0x%08lX\n", ITM_TPR);
+
+    // Check if ITM is enabled
+    if(DEMCR & (1 << 24)) {
+        printf("TRCENA is set (good)\n");
+    } else {
+        printf("TRCENA is NOT set (bad)\n");
+    }
+
+    if(ITM_TCR & (1 << 0)) {
+        printf("ITMENA is set (good)\n");
+    } else {
+        printf("ITMENA is NOT set (bad)\n");
+    }
+
+    if(ITM_TER & (1 << 0)) {
+        printf("Stimulus Port 0 enabled (good)\n");
+    } else {
+        printf("Stimulus Port 0 NOT enabled (bad)\n");
+    }
+}
+
+int main(void) {
+    test_ITM_registers();
+    // ...
+}

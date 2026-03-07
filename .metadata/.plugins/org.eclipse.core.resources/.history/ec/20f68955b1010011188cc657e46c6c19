@@ -1,0 +1,29 @@
+#include "stm32f4xx.h"
+
+int main(void) {
+    // Check which clock is being used
+    uint32_t sysclk_source = RCC->CFGR & RCC_CFGR_SWS;
+
+    if(sysclk_source == RCC_CFGR_SWS_HSI) {
+        printf("Using HSI (16 MHz)\n");
+    } else if(sysclk_source == RCC_CFGR_SWS_HSE) {
+        printf("Using HSE\n");
+    } else if(sysclk_source == RCC_CFGR_SWS_PLL) {
+        printf("Using PLL\n");
+        // Get PLL configuration
+        uint32_t pllm = (RCC->PLLCFGR & RCC_PLLCFGR_PLLM) >> 0;
+        uint32_t plln = (RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6;
+        uint32_t pllp = ((RCC->PLLCFGR & RCC_PLLCFGR_PLLP) >> 16) + 1;
+
+        // Calculate PLL output
+        // For HSE (8MHz external crystal on discovery board)
+        uint32_t pll_vco = (8000000 / pllm) * plln;
+        uint32_t sysclk = pll_vco / pllp;
+
+        printf("PLL M: %lu, N: %lu, P: %lu\n", pllm, plln, pllp);
+        printf("PLL VCO: %lu, SYSCLK: %lu\n", pll_vco, sysclk);
+    }
+
+    printf("Hello world\n");
+    while(1);
+}
